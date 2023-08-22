@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:untitled/global.dart';
 import 'package:http/http.dart' as http;
@@ -45,8 +46,25 @@ class SearchResultsPageState extends State<SearchResultsPage> {
   @override
   void initState() {
     search();
+    loadImages();
     super.initState();
   }
+
+
+  Future<void> loadImages() async {
+    final manifestContent = await rootBundle.loadString('AssetManifest.json');
+    final manifestMap = Map<String, dynamic>.from(json.decode(manifestContent));
+
+    final imagePaths = manifestMap.keys
+        .where((String key) => key.startsWith('assets/images/AirlineLogo'))
+        .toList();
+
+    setState(() {
+      this.imagePaths = imagePaths;
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -88,6 +106,10 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                                 ResultIndex: items.resultIndex,
                                 TraceId: traceId,
                                 Token: token,
+                                IsPanRequiredAtBook: items.isPanRequiredAtBook!,
+                                IsPanRequiredAtTicket: items.isPanRequiredAtTicket!,
+                                IsPassportRequiredAtBook: items.isPassportRequiredAtBook!,
+                                IsPassportRequiredAtTicket: items.isPassportRequiredAtTicket!,
                               )),
                         );
                       },
@@ -114,26 +136,26 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                                   return '$formattedHours h $formattedMinutes m';
                                 }
 
-                                // var airLogo =
-                                //     "assets/images/AirlineLogo/nologo.gif";
-                                //
-                                // for (int i = 0; i < imagePaths.length; i++) {
-                                //   var imgPath = imagePaths[i];
-                                //   var imgName = imgPath
-                                //       .split('/')
-                                //       .last; // Extract the image name from the path
-                                //   var imgCode = imgName
-                                //       .split('.')
-                                //       .first; // Extract the code from the image name
-                                //   var airCode = segment.airline!.airlineCode;
-                                //
-                                //   if (imgCode.toLowerCase() ==
-                                //       airCode!.toLowerCase()) {
-                                //     // print(airCode);
-                                //     // print(imgCode);
-                                //     airLogo = imgPath;
-                                //   }
-                                // }
+                                var airLogo =
+                                    "assets/images/AirlineLogo/nologo.gif";
+
+                                for (int i = 0; i < imagePaths.length; i++) {
+                                  var imgPath = imagePaths[i];
+                                  var imgName = imgPath
+                                      .split('/')
+                                      .last; // Extract the image name from the path
+                                  var imgCode = imgName
+                                      .split('.')
+                                      .first; // Extract the code from the image name
+                                  var airCode = segment.airline!.airlineCode;
+
+                                  if (imgCode.toLowerCase() ==
+                                      airCode!.toLowerCase()) {
+                                    // print(airCode);
+                                    // print(imgCode);
+                                    airLogo = imgPath;
+                                  }
+                                }
 
                                 return Column(
                                   children: [
@@ -261,10 +283,10 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                                           Container(
                                             alignment: Alignment.center,
                                             width: 50,
-                                            child: const Icon(Icons.airplane_ticket_sharp)
-                                            // Image.asset(
-                                            //   airLogo,
-                                            // ),
+                                            child: //const Icon(Icons.airplane_ticket_sharp)
+                                            Image.asset(
+                                              airLogo,
+                                            ),
                                           ),
                                           const SizedBox(
                                             width: 10,
@@ -475,7 +497,35 @@ try{
       // flightResult.addAll(result.response!.results as Iterable<Result>);
 
     });
-  }
+  }else if(response.statusCode == 504){
+    showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          // false = user must tap button, true = tap outside dialog
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+                surfaceTintColor: Colors.white,
+              title: Text('Error - 504'),
+              content: Text('Gateway Time-out'),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    Navigator.of(context).pop();
+                  },
+                ),TextButton(
+                  child: Text('Retry'),
+                  onPressed: () {
+                    search();
+                    Navigator.of(dialogContext).pop(); // Dismiss alert dialog
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
 
 
 

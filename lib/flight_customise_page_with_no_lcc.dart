@@ -9,10 +9,14 @@ List<Meal> NonLccMeal = [];
 
 
 class FlightCustomisePageWithNoLCC extends StatefulWidget {
-  const FlightCustomisePageWithNoLCC({Key? key, this.ResultIndex, this.TraceId, this.Token}) : super(key: key);
+  const FlightCustomisePageWithNoLCC({Key? key, this.ResultIndex, this.TraceId, this.Token, required this.IsPanRequiredAtBook, required this.IsPanRequiredAtTicket, required this.IsPassportRequiredAtBook, required this.IsPassportRequiredAtTicket}) : super(key: key);
   final ResultIndex;
   final TraceId;
   final Token;
+  final bool IsPanRequiredAtBook;
+  final bool IsPanRequiredAtTicket;
+  final bool IsPassportRequiredAtBook;
+  final bool IsPassportRequiredAtTicket;
 
   @override
   _FlightCustomisePageWithNoLCCState createState() =>

@@ -17,10 +17,14 @@ import 'models/nonLccSSRwithSeat.dart';
 import 'nonLccSsrMealWithOutSeat.dart';
 
 class FlightDetails extends StatefulWidget {
-  const FlightDetails({Key? key, this.ResultIndex, this.TraceId, this.Token}) : super(key: key);
+  const FlightDetails({Key? key, this.ResultIndex, this.TraceId, this.Token, required this.IsPanRequiredAtBook, required this.IsPanRequiredAtTicket, required this.IsPassportRequiredAtBook, required this.IsPassportRequiredAtTicket}) : super(key: key);
   final ResultIndex;
   final TraceId;
   final Token;
+  final bool IsPanRequiredAtBook;
+  final bool IsPanRequiredAtTicket;
+  final bool IsPassportRequiredAtBook;
+  final bool IsPassportRequiredAtTicket;
 
   @override
   _FlightDetailsState createState() => _FlightDetailsState();
@@ -32,6 +36,8 @@ class _FlightDetailsState extends State<FlightDetails> {
   var DestinationCountryName = "";
 
   bool isLoading = true;
+
+  var fare = {};
 
   @override
   void initState() {
@@ -267,6 +273,10 @@ class _FlightDetailsState extends State<FlightDetails> {
               onPressed: () {
                 print(lcc);
                 if(lcc){
+                  setState(() {
+                    passengerDetails.clear();
+                  });
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -274,6 +284,12 @@ class _FlightDetailsState extends State<FlightDetails> {
                           ResultIndex: widget.ResultIndex,
                           TraceId: widget.TraceId,
                           Token: widget.Token,
+                          IsPanRequiredAtBook: widget.IsPanRequiredAtBook,
+                          IsPanRequiredAtTicket: widget.IsPanRequiredAtTicket,
+                          IsPassportRequiredAtBook: widget.IsPassportRequiredAtBook,
+                          IsPassportRequiredAtTicket: widget.IsPassportRequiredAtTicket,
+                          fare: fare,
+
                         )),
                   );
                 }else{
@@ -285,6 +301,10 @@ class _FlightDetailsState extends State<FlightDetails> {
                           ResultIndex: widget.ResultIndex,
                           TraceId: widget.TraceId,
                           Token: widget.Token,
+                          IsPanRequiredAtBook: widget.IsPanRequiredAtBook,
+                          IsPanRequiredAtTicket: widget.IsPanRequiredAtTicket,
+                          IsPassportRequiredAtBook: widget.IsPassportRequiredAtBook,
+                          IsPassportRequiredAtTicket: widget.IsPassportRequiredAtTicket,
                         )),
                   );
                 }
@@ -836,6 +856,20 @@ class _FlightDetailsState extends State<FlightDetails> {
         final result = fareQuoteModelFromJson(response.body);
         try {
           print(result.response!.results!.isLcc!);
+          print(result.response!.results!.fare!.baseFare);
+
+          setState(() {
+            fare = {
+              "BaseFare": result.response!.results!.fare!.baseFare,
+              "Tax": result.response!.results!.fare!.tax,
+              "YQTax": result.response!.results!.fare!.yqTax,
+              "AdditionalTxnFeePub": result.response!.results!.fare!.additionalTxnFeePub,
+              "AdditionalTxnFeeOfrd": result.response!.results!.fare!.additionalTxnFeeOfrd,
+              "OtherCharges": result.response!.results!.fare!.otherCharges
+            };
+          });
+
+
           // fareQuoteResult.add(result.response!.results);
           setState(() {
             LccBaggage.isNotEmpty ? LccBaggage.clear() : null;
@@ -851,7 +885,6 @@ class _FlightDetailsState extends State<FlightDetails> {
 
           });
 
-          
         } catch (e) {
           setState(() {
             isLoading = false;
@@ -866,7 +899,8 @@ class _FlightDetailsState extends State<FlightDetails> {
       }
 
       if (lcc) {
-        getSSR(token, traceId, resultIndex);
+        print("lcc true");
+         getSSR(token, traceId, resultIndex);
       } else {
         getSSRWithoutLcc(token, traceId, resultIndex);
       }
@@ -880,6 +914,10 @@ class _FlightDetailsState extends State<FlightDetails> {
 
   void getSSR(token, traceId, resultIndex) async {
     print("lcc trueeeee: $lcc");
+    setState(() {
+      isLoading = true;
+    });
+
 
     final response = await http.post(
       Uri.parse(api + 'api/flight/ssr'),
@@ -893,7 +931,7 @@ class _FlightDetailsState extends State<FlightDetails> {
     );
 
     // log(response.body);
-    log('ssr: ${response.body}');
+    // log('ssr: ${response.body}');
     print(response.statusCode);
 
 
@@ -901,14 +939,20 @@ class _FlightDetailsState extends State<FlightDetails> {
     if (response.body.contains("No SSR details found")) {
       setState(() {
         ssr = false;
+        isLoading = false;
       });
     }
 
     if (response.statusCode == 200) {
+      setState(() {
+        ssr = true;
+      });
       getSeats(response.body);
 
       final lccResult = ssrWithLccModelFromJson(response.body);
 
+      print(lccResult.response!.baggage);
+      print("baggagesss");
 
       setState(() {
         LccBaggage = lccResult.response!.baggage![0];
@@ -918,6 +962,7 @@ class _FlightDetailsState extends State<FlightDetails> {
 
         selectedOption = LccBaggage[0];
         selectedMeal = mealItems[0];
+        isLoading = false;
       });
     }
   }
@@ -972,7 +1017,9 @@ class _FlightDetailsState extends State<FlightDetails> {
 
   void getSSRWithoutLcc(token, traceId, resultIndex) async {
     print("lcc falseeee: $lcc");
-
+    setState(() {
+      isLoading = false;
+    });
 
     final response = await http.post(
       Uri.parse(api + 'api/flight/ssr'),
@@ -993,6 +1040,7 @@ class _FlightDetailsState extends State<FlightDetails> {
     if (response.body.contains("No SSR details found")) {
       setState(() {
         ssr = false;
+        isLoading = false;
       });
     }
     else{
@@ -1007,6 +1055,9 @@ class _FlightDetailsState extends State<FlightDetails> {
 
         }catch(e){
           print(e);
+          setState(() {
+            isLoading = false;
+          });
         }
       }else{
         try{
@@ -1015,8 +1066,15 @@ class _FlightDetailsState extends State<FlightDetails> {
           nonLccMealWithoutSeat.add(res.response!.meal![0]);
           seatPreference.add(res.response!.seatPreference![0]);
 
+          setState(() {
+            isLoading = false;
+          });
+
         }catch(e){
           print(e);
+          setState(() {
+            isLoading = false;
+          });
         }
       }
 
